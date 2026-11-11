@@ -4,21 +4,24 @@ Focused, actionable items only. Mark done as items complete; keep curated.
 
 ## Decisions needed from the user
 
-- (none currently)
+- Report the dead `resolve_cache` path upstream? (Confirmed vestigial 2026-11-10:
+  content sends it only when `tls.sieveCacheRes` is set — a pref absent from
+  `defaults.json` — and the background has no handler for the command; caching
+  effectively never happens.)
 
 ## Tasks
 
-- [ ] Record this bootstrap in the hub registration file
-      (`Projects/Imagus Reborn.md`): rules file now exists, bootstrapped
-      status, doc set pointers.
-- [ ] Cross-link the `@da` project docs to the sieve I/O analysis in
-      `Details.md` (§3-§7) — the `@da` docs should reference, not duplicate.
-- [ ] Divergence audit: "Imagus Mod" (the `@da` test environment) vs this
-      engine — record differences relevant to sieve authors in
-      `Details.md` §10.
-- [ ] Confirm `resolve_cache` is vestigial (content sends it, background
-      has no handler, `tls.sieveCacheRes` not in defaults); decide whether
-      it is worth reporting upstream.
+- [x] Record this bootstrap in the hub registration file (done 2026-11-10).
+- [x] Cross-link the `@da` project docs to the sieve I/O analysis in `Details.md`
+      (done 2026-11-10: `@da` now references this repository as the source of truth
+      for sieve I/O details and keeps only highest-level summaries locally).
 - [ ] When any extension update lands and has a new tagged release version (git pull), re-verify `Details.md`
       against the changed sieve engine before the `@da` project relies on
       it.
+- [ ] **Transform the sieve analysis in `Details.md` into a proper documentation
+      suite.** Propose an organization and work with the user interactively to create
+      something useful, first from the developers' perspective (engine internals,
+      rule formats, debugging/contribution), then from the standard users' perspective
+      (features, settings, day-to-day usage). Evaluate a **bifurcated documentation
+      setup** (separate dev-docs and user-docs trees) and decide with the user whether
+      it is useful or unnecessarily complex.

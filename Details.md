@@ -195,6 +195,16 @@ Inside the function:
 - `this` — content-script API object (`this.node` = hovered element,
   `this.TRG` = trigger, `this.set(...)`, `this.DIV`, etc.).
 - May set `this.TRG.IMGS_ext_data` (extension items, §5.4) before returning.
+- Observed `this` members used by community sieves (corpus evidence): `this.node`
+  (hovered element, `this.node.src` as fallback return), `this.TRG`, `this.CNT`
+  (mutable carrier — `this.CNT.filename` sets the download filename), and custom
+  properties (e.g. `this._bunkr_data_`) used as a persistent per-sieve cache across
+  invocations/loops.
+- Browser APIs available in this content-script world: `document`, `window`,
+  `location`, `XMLHttpRequest` (synchronous allowed), `DOMParser`,
+  `structuredClone`; some sieves read a `platform` object (`platform.firefox`)
+  for runtime detection. User settings via `cfg` (e.g. `cfg.hz.capWH`,
+  `cfg.hz.hiRes`, `cfg.hz.mediaVolume`, `cfg.keys.hz_open`, `cfg.sieve.filter`).
 - Return shapes: see §5.
 - POST support: the fetch URL may embed `" :<postdata>"` after a space;
   the background sends it as a urlencoded POST body (service.js:365-378).
