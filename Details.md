@@ -78,6 +78,61 @@ Search covers notes and all fields.
 The background fetch uses `host_permissions: <all_urls>` — no CORS
 restrictions. The fetched `Content-Type` gates the outcome (see §5.3).
 
+### 2.1 Global environment of sieve functions — `cfg` and other bindings (added 2026-11-13)
+
+Sieve functions (`url`, `to`, `res` function forms) are compiled with the
+`Function` constructor in the user-script world (content.js:1297, 3680), so
+their scope chain ends at the **global lexical environment** of that world.
+`common/app.js` runs as a separate classic user script in the *same* world
+(service.js:622-639, at document_start) and declares top-level bindings —
+all readable from sieve code:
+
+| Binding | Contents | Sieve relevance |
+|---|---|---|
+| `cfg` | Settings snapshot: `hz`, `keys`, `tls`, `grants`, `grantUrls`, `sieve`, `sieveUpdateLast`, `sieveRepository` (app.js:111) | Settings flags (below) |
+| `platform` | `"firefox"` / `"chrome"` (app.js:7) | Runtime detection (§4.3) |
+| `Port`, `shortcut`, `app`, `readCfg`, `buildNodes`, `catchEvent` | Engine internals | None |
+
+content.js is an IIFE — its internals (e.g. `PVI`) are not global; `PVI`
+reaches sieve code only as `this` (§4.1–4.3).
+
+Relevant `cfg` flags (defaults in `src/data/defaults.json`; all verified in
+content.js at 2026.10.31):
+
+| Flag | Default | Native behavior |
+|---|---|---|
+| `hz.hiRes` | `true` | "Prefer high resolution": for any returned array, `#`-prefixed entries are split from plain ones (content.js:2005-2020) and this flag decides which group shows first; the other is kept for the `keys.hiResToggle` toggle. The whole `#` mechanism is gated by it. |
+| `hz.hiResOnFZ` | `3` | Auto-toggles to the hi-res group on fullzoom when the size ratio reaches the value (2812-2818) |
+| `hz.capText` | `true` | Caption text visibility (751, 985, 1027, 3738); captions are still prepared/stored when off (3741-3742) |
+| `hz.capWH` | `true` | Caption dimensions block; also gates `createCAP` (751) — used by the `@da` sieve (sieve-res.js:404) |
+| `hz.capWrapByDef` | `true` | Caption `white-space: pre-line` vs `nowrap` (997); note `prepareCaption` flattens all `\n`/`\r` in sieve captions to spaces first (1019) |
+| `hz.capPos` / `hz.capOver` / `hz.capStyle` / `hz.capFlashCount` | `0` / `true` / `0` / `1` | Caption bottom-vs-top, overlay-vs-outside, dark-vs-light, pile-cycling flicker (994-1006, 1038) |
+| `hz.autoplay`, `hz.mediaLoop`, `hz.mediaVolume`, `hz.mediaVolOrient`, `hz.invertWheel`, `hz.hideControlsDelay` | `true` / `"default"` / `40` / `"horizontal"` / `false` / `2000` | VideoJS player behavior for returned media URLs (826-839, 963) |
+| `hz.preload` | `0` | Preload depth 0-3: off / first item / on show / whole page (2042, 3249, 3766, 3877) |
+| `hz.galleryGridSize`, `hz.pileWheel`, `hz.pileCycle`, `hz.singleArrowTimeJumpInAlbum` | `150` / `1` / `false` / `false` | Album strip UI (2775-2779) |
+| `hz.scaleUp`, `hz.placement`, `hz.fullspace`, `hz.fzMode`, `hz.fzOnPress`, `hz.fzDefault`, `hz.lockedZoom` | `false` / `0` / `true` / `1` / `1` / `false` / `1` | Popup display and zoom modes |
+| `hz.delay`, `hz.waitHide`, `hz.LDRdelay`, `hz.LDRbgOpacity`, `hz.LDRanimate` | `300` / `false` / `300` / `100` / `true` | Resolve timing and loader appearance (1361, 1694-1700) |
+| `hz.history` | `true` | History recording; loop re-entries are flagged `IMGS_nohistory` when on (1526, 1645) |
+| `keys.*` | — | Keybindings, e.g. `keys.hiResToggle` = `"Tab"`, `keys.openTab` = `"O"` |
+| `tls.sendToHosts` | 6 entries | Toolbar send-to menu (219-221) |
+| `grants` / `grantUrls` / `grantUrlsEnabled` | `[]` / `[]` / `true` | Site gating (§3.3) — also sieve-readable |
+
+Sieve-actionable flags (reading them can legitimately change sieve output):
+
+- `cfg.hz.hiRes` — tells the sieve which group of a mixed array will display
+  first. Sieves must still emit BOTH groups (dropping `#` entries when
+  `hiRes=false` would break the toggle). Plain arrays are not
+  preference-ordered by the engine — `[low, high]` without `#` shows low
+  first even for hi-res-preferring users; hand the choice to the engine
+  via `#`.
+- `cfg.hz.capWH` — layout of sieve-built caption text (the `@da` prefix).
+- `platform` — engine/runtime divergences.
+
+Everything else is display/player-side: the engine applies the user's
+settings to whatever standard shape the sieve returns (§7). Re-implementing
+them in a sieve would duplicate engine behavior and risk divergence between
+Imagus Mod and Reborn.
+
 ---
 
 ## 3. Inputs: what gets matched
@@ -202,9 +257,9 @@ Inside the function:
   invocations/loops.
 - Browser APIs available in this content-script world: `document`, `window`,
   `location`, `XMLHttpRequest` (synchronous allowed), `DOMParser`,
-  `structuredClone`; some sieves read a `platform` object (`platform.firefox`)
+  `  structuredClone`; some sieves read a `platform` object (`platform.firefox`)
   for runtime detection. User settings via `cfg` (e.g. `cfg.hz.capWH`,
-  `cfg.hz.hiRes`, `cfg.hz.mediaVolume`, `cfg.keys.hz_open`, `cfg.sieve.filter`).
+  `cfg.hz.hiRes`, `cfg.hz.mediaVolume`) — full exposure map in §2.1.
 - Return shapes: see §5.
 - POST support: the fetch URL may embed `" :<postdata>"` after a space;
   the background sends it as a urlencoded POST body (service.js:365-378).
@@ -242,7 +297,7 @@ A `res` result passes through:
 |---|---|
 | `"url"` string | Single media URL (image, or video/audio if it matches `isVideoUrl`) |
 | `["url1","url2",…]` | Ordered **fallback list**: on load error the next entry is tried (`content_onerror`, 2096-2125) |
-| entries prefixed `"#"` | **Hi-res group**: separated from the normal list; the hi-res toggle (`keys.hiRes`, default Tab; `hz.hiRes`) switches between groups (`set`, 2000-2021; `IMGS_HD_stack`) |
+| entries prefixed `"#"` | **Hi-res group**: separated from the normal list; the hi-res toggle (`keys.hiResToggle`, default Tab; `hz.hiRes`) switches between groups (`set`, 2000-2021; `IMGS_HD_stack`) |
 | `[[url,caption],…]` (2+) | **Album**: gallery strip + prev/next navigation; `caption` shown in the caption bar; first element of the stored stack is the current index (`album`, 1911-1970) |
 | `[[url,caption]]` (1) | Single item **with caption** |
 | `"imagus://extension"` | Triggers the extension host (§5.4) |
@@ -347,6 +402,11 @@ site-toggle button (badge `X`) and the context-menu ignore feature.
 - `url` inline functions and `to` functions share the `":"` prefix but
   differ in newline requirement (`":\n"` vs `":expr"`); a `to` function
   missing the newline will not compile as a function.
+- Vestigial settings read by code but absent from `defaults.json` (always
+  undefined/falsy): `hz.capNoSBar` (content.js:1662, 3183, 3244),
+  `hz.capLinkText` (only in commented-out code, 1667-1669); `cfg.messages`
+  and `cfg.app` are read undefined-safe but never present. `tls.sieveCacheRes`
+  (see §8) is likewise absent. What actually exists is listed in §2.1.
 
 ## 10. Relevance to the `@da` sieve project
 
