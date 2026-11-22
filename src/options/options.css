@@ -344,6 +344,28 @@ h4 ~ .prow {
 .sub_opt {
     padding-left: 20px;
 }
+form input[type="radio"] {
+    display: none;
+}
+.scope_opts > span {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin: 1px 0;
+}
+.scope_opts > span > label:not(.checkbox) {
+    margin: 0 6px;
+}
+.checkbox.radio:after {
+    content: "●";
+    font-size: 10px;
+    left: 3px;
+    top: 4px;
+}
+input:disabled {
+    color: #999;
+    background-color: #eee;
+}
 .checkbox,
 code,
 pre,

@@ -51,41 +51,41 @@ engine mechanics it modifies are analyzed in `Details.md` §11.
 
 ### Tasks
 
-- [ ] `defaults.json`: add the new prefs/keys listed in the design decisions.
-- [ ] Engine (`content.js`) — override containers: per-image map keyed by
+- [x] `defaults.json`: add the new prefs/keys listed in the design decisions.
+- [x] Engine (`content.js`) — override containers: per-image map keyed by
       resolved URL (page memory; survives `resetNode`), gallery flag stored
       on the album array object in `PVI.stack`, per-page flag in the top
       frame with iframe relay; plus the effective-preference resolver
       (per-image > per-gallery > per-page > global `hz.hiRes`).
-- [ ] Engine (`content.js`) — rewiring: `set()` `#`-group split (2014-2017)
-      and preload selection (3492, 3558) consume the resolver;
-      `hiResToggle()` (2797-2809) writes the flip at the active scope with
-      Shift as the Per Page alias; `key_action` (2568) dispatches by mode,
-      main key inert in Individual Hotkeys mode; `album()` navigation stops
-      losing per-image state (1957 `resetNode` wipe); keep error-fallback
-      (2111-2115), `assign_src` auto-upgrade (2214-2217) and fullzoom
-      auto-toggle (2811-2820) at per-image semantics; `hiResRemember=false`
-      bypasses the sticky system entirely (legacy behavior).
-- [ ] Preferences page (`options.html` + en locale): new Resolution section
-      header between General (ends ~195) and Media (~196); move the
-      `hz_hiRes` row + `hz_hiResOnFZ` sub-item; renamed label; Remember
-      checkbox with tooltip; scope radio group (radios are new UI territory
-      — `save()`/`load()` handle checkbox/number/string only).
-- [ ] `options.js`: bespoke radio-group load/save; grey-out wiring (Remember
-      unchecked -> radios disabled; scope != "hotkeys" -> sub-hotkeys
-      disabled).
-- [ ] Shortcuts page (`options.html` + `options.css`): relabel the main
-      toggle entry; new group header + three sub-hotkey inputs; greyed/
-      disabled styling for shortcut inputs (new — no such styling exists).
-- [ ] `_locales/en/messages.json`: all new keys (section header, renamed
-      hi-res label, Remember label + tooltip, radio labels, SC_ labels for
-      the sub-hotkeys, shortcuts group header).
+- [x] Engine (`content.js`) — rewiring: `set()` `#`-group split and preload
+      selection consume the resolver; `hiResToggle()` writes the flip at the
+      active scope with Shift as the Per Page alias; `key_action` dispatches
+      by mode, main key inert in Individual Hotkeys mode; `album()`
+      navigation no longer loses per-image state (`resetNode` wipes only the
+      trigger expandos; the URL-keyed map survives); error-fallback,
+      `assign_src` auto-upgrade and fullzoom auto-toggle stay per-image swap
+      only; `hiResRemember=false` bypasses the sticky system entirely
+      (legacy behavior). Implementation documented in `Details.md` §11.7.
+- [x] Preferences page (`options.html` + en locale): new Resolution section
+      header between General and Media; moved the `hz_hiRes` row +
+      `hz_hiResOnFZ` sub-item; renamed label; Remember checkbox with
+      tooltip; scope radio group (bespoke radio handling in
+      `load()`/`save()`/`onValueChange`, custom radio styling).
+- [x] `options.js`: bespoke radio-group load/save and dirty tracking;
+      grey-out wiring (`updateHiResUi`: Remember unchecked -> radios
+      disabled; scope != "hotkeys" -> sub-hotkeys disabled).
+- [x] Shortcuts page (`options.html` + `options.css`): relabeled the main
+      toggle entry; new "Resolution" group header + three sub-hotkey inputs;
+      greyed/disabled styling for inputs.
+- [x] `_locales/en/messages.json`: all new keys (section header, renamed
+      hi-res label, Remember label + tooltip, scope label + radio labels,
+      SC_ labels for the main and sub-hotkeys). Other locales untouched
+      (English fallback).
 - [ ] Manual verification: build; exercise all four modes on galleries
       (deviantart test bed), single images, and iframe-hosting pages; verify
       the Shift alias and the Remember-off legacy path.
-- [ ] Post-feature doc sync: `Details.md` §2.1 cfg flags table and the
-      `@da`-relevant sieve notes (`cfg.hz.hiRes` semantics for sieves),
-      `Design.md` persistence notes.
+- [x] Post-feature doc sync: `Details.md` §2.1 cfg flags table and §11.7
+      implementation notes, `Design.md` persistence notes.
 
 ## Decisions needed from the user
 

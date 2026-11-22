@@ -44,6 +44,8 @@ database of per-site rules.
 - Sieve: `sieve` storage key; weekly alarm-driven update merges remote
   changes while preserving user-disabled rules and `_`-prefixed custom rules.
 - Per-session caches (resolved albums, SVG dimensions) live in page memory.
+- Sticky resolution overrides (per image / gallery / page toggles) are
+  per-page memory only — never written to storage (see `Details.md` §11.7).
 
 ## Upstream
 

@@ -101,8 +101,10 @@ content.js at 2026.10.31):
 
 | Flag | Default | Native behavior |
 |---|---|---|
-| `hz.hiRes` | `true` | "Prefer high resolution": for any returned array, `#`-prefixed entries are split from plain ones (content.js:2005-2020) and this flag decides which group shows first; the other is kept for the `keys.hiResToggle` toggle. The whole `#` mechanism is gated by it. |
-| `hz.hiResOnFZ` | `3` | Auto-toggles to the hi-res group on fullzoom when the size ratio reaches the value (2812-2818) |
+| `hz.hiRes` | `true` | "Prefer high resolution": for any returned array, `#`-prefixed entries are split from plain ones (content.js:2008-2024) and the *effective* preference decides which group shows first (global flag overridden by the sticky-resolution layers of §11.7); the other is kept for the `keys.hiResToggle` toggle. The whole `#` mechanism is gated by it. |
+| `hz.hiResRemember` | `true` | Sticky Resolution: whether toggled resolution preferences are remembered at all (§11.7). `false` restores the exact pre-feature toggle behavior. |
+| `hz.hiResScope` | `"image"` | Sticky Resolution: scope of the main toggle hotkey — `"image"`, `"gallery"`, `"page"`, or `"hotkeys"` (main key inert, individual `keys.hiResToggle*` bindings take over) (§11.7). |
+| `hz.hiResOnFZ` | `3` | Auto-toggles to the hi-res group on fullzoom when the size ratio reaches the value (2896-2905; per-image swap only, writes no sticky override) |
 | `hz.capText` | `true` | Caption text visibility (751, 985, 1027, 3738); captions are still prepared/stored when off (3741-3742) |
 | `hz.capWH` | `true` | Caption dimensions block; also gates `createCAP` (751) — used by the `@da` sieve (sieve-res.js:404) |
 | `hz.capWrapByDef` | `true` | Caption `white-space: pre-line` vs `nowrap` (997); note `prepareCaption` flattens all `\n`/`\r` in sieve captions to spaces first (1019) |
@@ -113,7 +115,7 @@ content.js at 2026.10.31):
 | `hz.scaleUp`, `hz.placement`, `hz.fullspace`, `hz.fzMode`, `hz.fzOnPress`, `hz.fzDefault`, `hz.lockedZoom` | `false` / `0` / `true` / `1` / `1` / `false` / `1` | Popup display and zoom modes |
 | `hz.delay`, `hz.waitHide`, `hz.LDRdelay`, `hz.LDRbgOpacity`, `hz.LDRanimate` | `300` / `false` / `300` / `100` / `true` | Resolve timing and loader appearance (1361, 1694-1700) |
 | `hz.history` | `true` | History recording; loop re-entries are flagged `IMGS_nohistory` when on (1526, 1645) |
-| `keys.*` | — | Keybindings, e.g. `keys.hiResToggle` = `"Tab"`, `keys.openTab` = `"O"` |
+| `keys.*` | — | Keybindings, e.g. `keys.hiResToggle` = `"Tab"`, `keys.openTab` = `"O"`; Sticky Resolution adds `hiResToggleImage`/`hiResToggleGallery`/`hiResTogglePage` (default unbound, active only in `hz.hiResScope = "hotkeys"` mode) |
 | `tls.sendToHosts` | 6 entries | Toolbar send-to menu (219-221) |
 | `grants` / `grantUrls` / `grantUrlsEnabled` | `[]` / `[]` / `true` | Site gating (§3.3) — also sieve-readable |
 
@@ -424,12 +426,12 @@ site-toggle button (badge `X`) and the context-menu ignore feature.
 
 ## 11. Hi-resolution ("hiRes") toggle mechanics (added 2026-11-21)
 
-Documents the engine's resolution-preference machinery as of branch
-`Sticky_Res` **before** the Sticky Resolution feature lands (see `TODO.md`);
-line numbers will shift once that feature modifies these sites — re-verify
-then. All in `src/content/content.js` (3973 lines at this version) unless
-noted. Relevant to sieves because rules can read `cfg.hz.hiRes` directly
-(§2.1) and emit `#`-prefixed entries (§4.2, §5.2).
+Documents the engine's resolution-preference machinery. **§11.1–11.6
+describe the pre-Sticky-Resolution state** (upstream behavior, line numbers
+from upstream 2026.10.31); **§11.7 documents the implemented Sticky
+Resolution feature** (branch `Sticky_Res`). All in `src/content/content.js`
+unless noted. Relevant to sieves because rules can read `cfg.hz.hiRes`
+directly (§2.1) and emit `#`-prefixed entries (§4.2, §5.2).
 
 ### 11.1 `hz.hiRes` consumption sites
 
@@ -498,13 +500,55 @@ Unset/empty `keys.*` bindings simply never match. `hiResToggle` default
 (options.html:603) with generic capture/duplicate detection (options.js
 610–634).
 
-### 11.7 Sticky Resolution feature targets (branch `Sticky_Res`)
+### 11.7 Sticky Resolution implementation (branch `Sticky_Res`, added 2026-11-21)
 
-The feature adds per-image / per-gallery / per-page override layers
-(specificity: image > gallery > page > global `hz.hiRes`) with page-memory
-lifetime, redesigning 11.2–11.4 accordingly; `set()`/preload consume an
-effective-preference resolver, album navigation stops destroying per-image
-state, and the Shift variant becomes a Per Page alias. Sieve-visible note:
-sieves reading `cfg.hz.hiRes` will still see the global snapshot, not the
-sticky overrides — do not expect sieve output to react to per-image/page
-toggles.
+The feature adds per-image / per-gallery / per-page override layers with
+page-memory lifetime, consulted in specificity order by an effective-
+preference resolver; global `hz.hiRes` is the final fallback.
+
+**Override containers** (all page memory, nothing persists across page
+loads; `hz.hiResRemember = false` bypasses all of them):
+
+- **Per image**: `PVI.hiResImages` — object keyed by the image's canonical
+  identity: the normalized *normal-group* URL (`PVI.TRG.IMGS_hdKey`, seeded
+  in the `set()` split as the first plain-group URL after `httpPrepend`;
+  `hdPreloadEff` re-derives the same key from raw `#`-prefixed album
+  entries). Survives `resetNode` and album navigation; re-hovering the same
+  image re-derives the key.
+- **Per gallery**: `IMGS_HD` flag stored **on the album array object** in
+  `PVI.stack` (the page-level container that survives popup open/close).
+- **Per page**: `PVI.hiResPageVal` — top-frame authority. An iframe toggle
+  posts `from_frame {hiResPage}` upward (forwarded frame-by-frame); the top
+  frame stores and broadcasts `hiResPageSet` down through the recursive
+  `winOnMessage` frame loop; new frames receive the current value piggy-
+  backed on the `isFrame` handshake response.
+
+**Resolver**: `hdEffective()` (display) and `hdPreloadEff(url)` (preload)
+return per-image → per-gallery → per-page → `cfg.hz.hiRes`. `PVI.set()`'s
+`#`-split (2017-2024) seeds `IMGS_HD`/`IMGS_HD_stack` from the resolver;
+`_preload` (3579-3585) and page `preload()` (3641-3651) consume
+`hdPreloadEff`. `resetNode` deletes `IMGS_hdKey` — per-image state lives in
+the map, so album navigation no longer loses it.
+
+**Toggle paths**:
+
+- `hiResToggle(e)` (2891-2901): Shift+key = Per Page write (alias);
+  remember off or auto-call (`assign_src` upgrade, `switchToHiResInFZ`) =
+  plain `hiResSwap()`; main key in `"hotkeys"` mode = inert; otherwise
+  `hiResWrite(cfg.hz.hiResScope)`.
+- `hiResWrite(scope)` (2842-2856): flips the *effective* value at the scope
+  (gallery on a standalone image falls back to the per-image map), then
+  re-applies to the current image via `hiResSwap()` if its group choice
+  now differs.
+- `hiResKey(e)` (2879-2883): the three individual-hotkeys-mode bindings,
+  each writing its own scope (inert when remembering is off).
+- `content_onerror` HD-stack fallback (2114-2120) keeps deleting only the
+  per-trigger swap state; map/album/page overrides survive.
+
+**Known limitations**: a toggle only has a visible effect where the sieve
+provided *both* resolution groups (single-URL album entries have nothing to
+switch); album arrays cloned from iframes to the top frame are
+`postMessage` copies, so gallery flags do not sync across frames; sieves
+reading `cfg.hz.hiRes` still see the static global snapshot, not the
+sticky overrides; the old hidden Shift behavior (global in-memory flip of
+`cfg.hz.hiRes`) was replaced by the Per Page alias and no longer exists.
