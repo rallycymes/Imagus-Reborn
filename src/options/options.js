@@ -502,9 +502,14 @@ function updateHiResUi() {
         r.disabled = !remembered;
         if (remembered && r.checked && r.value === "hotkeys") hotkeysMode = true;
     }
+    const scopeRow = document.querySelector(".scope_opts")?.closest(".prow");
+    if (scopeRow) scopeRow.classList.toggle("hires_off", !remembered);
     for (const key of ["hiResToggleImage", "hiResToggleGallery", "hiResTogglePage"]) {
         const fld = document.querySelector('input[name="keys_' + key + '"]');
-        if (fld) fld.disabled = !hotkeysMode;
+        if (fld) {
+            fld.disabled = !hotkeysMode;
+            fld.closest("li").classList.toggle("hires_off", !hotkeysMode);
+        }
     }
 }
 
