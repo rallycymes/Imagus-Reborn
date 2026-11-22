@@ -498,12 +498,22 @@ function updateHiResUi() {
     const scope = document.querySelectorAll('input[name="hz_hiResScope"]');
     const remembered = remember && remember.checked;
     let hotkeysMode = false;
+    let scopeVal = null;
     for (const r of scope) {
         r.disabled = !remembered;
+        if (r.checked) scopeVal = r.value;
         if (remembered && r.checked && r.value === "hotkeys") hotkeysMode = true;
     }
     const scopeRow = document.querySelector(".scope_opts")?.closest(".prow");
     if (scopeRow) scopeRow.classList.toggle("hires_off", !remembered);
+    const main = document.querySelector('input[name="keys_hiResToggle"]');
+    if (main) {
+        main.disabled = hotkeysMode;
+        const mainLi = main.closest("li");
+        mainLi.classList.toggle("hires_off", hotkeysMode);
+        const stateKey = !remembered ? "SC_HIRES_STATE_OFF" : hotkeysMode ? "SC_HIRES_STATE_DISABLED" : "SC_HIRES_STATE_" + scopeVal.toUpperCase();
+        mainLi.querySelector(".hires_state").textContent = " (currently: " + (chrome.i18n.getMessage(stateKey) || stateKey) + ")";
+    }
     for (const key of ["hiResToggleImage", "hiResToggleGallery", "hiResTogglePage"]) {
         const fld = document.querySelector('input[name="keys_' + key + '"]');
         if (fld) {
