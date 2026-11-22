@@ -29,10 +29,13 @@ engine mechanics it modifies are analyzed in `Details.md` §11.
   resolution" entry shows a second dynamic parenthetical
   `(per page: shift + <key>)` — with a read-only mirror input of the primary
   binding and literal `shift + ` text outside it, mirroring the page's other
-  modifier-prefixed entries — whenever a "per" scope is selected. It is
-  hidden in Individual Hotkeys mode (dynamic text stays "(currently:
-  disabled)") and when remembering is off (alias inert there), documenting
-  the previously invisible alias without changing its behavior or defaults.
+  modifier-prefixed entries — whenever a "per image" or "per gallery" scope
+  is selected. It is hidden in Individual Hotkeys mode (dynamic text stays
+  "(currently: disabled)"), when remembering is off (alias inert there), and
+  in Per Page mode (redundant: the main key already toggles per page, and
+  Shift+key does the identical flip — both verified to work in that mode
+  without conflict), documenting the previously invisible alias without
+  changing its behavior or defaults.
 - **Override specificity**: per-image > per-gallery > per-page > global
   `hz.hiRes` (explained in the parent setting's tooltip; more specific
   toggles override more general ones).

@@ -513,7 +513,7 @@ function updateHiResUi() {
         mainLi.classList.toggle("hires_off", hotkeysMode);
         const stateKey = !remembered ? "SC_HIRES_STATE_OFF" : hotkeysMode ? "SC_HIRES_STATE_DISABLED" : "SC_HIRES_STATE_" + scopeVal.toUpperCase();
         mainLi.querySelector(".hires_state").textContent = " (currently: " + (chrome.i18n.getMessage(stateKey) || stateKey) + ")";
-        const aliasShown = remembered && !hotkeysMode;
+        const aliasShown = remembered && !hotkeysMode && scopeVal !== "page";
         mainLi.querySelector(".hires_alias").hidden = !aliasShown;
         mainLi.querySelector(".hires_alias_scope").textContent = chrome.i18n.getMessage("SC_HIRES_STATE_PAGE") || "per page";
         mainLi.querySelector(".hires_alias input").value = main.value;
