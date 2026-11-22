@@ -25,3 +25,5 @@ Focused, actionable items only. Mark done as items complete; keep curated.
       (features, settings, day-to-day usage). Evaluate a **bifurcated documentation
       setup** (separate dev-docs and user-docs trees) and decide with the user whether
       it is useful or unnecessarily complex.
+- [ ] Create a userscript for toggling the "Prefer images with higher resolution" setting with a hotkey. Useful for deviantart.
+- [ ] Investigate full zoom -> ratio check. Works inconsistently and doesn't appear to stick when switching between images in a gallery.
