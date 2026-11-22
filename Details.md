@@ -419,3 +419,92 @@ site-toggle button (badge `X`) and the context-menu ignore feature.
 - DeviantArt sieves are tested in "Imagus Mod" (older engine); any
   Mod/Reborn divergences discovered should be recorded here and in the
   `@da` docs (**inferred**: divergence audit not yet done).
+
+---
+
+## 11. Hi-resolution ("hiRes") toggle mechanics (added 2026-11-21)
+
+Documents the engine's resolution-preference machinery as of branch
+`Sticky_Res` **before** the Sticky Resolution feature lands (see `TODO.md`);
+line numbers will shift once that feature modifies these sites — re-verify
+then. All in `src/content/content.js` (3973 lines at this version) unless
+noted. Relevant to sieves because rules can read `cfg.hz.hiRes` directly
+(§2.1) and emit `#`-prefixed entries (§4.2, §5.2).
+
+### 11.1 `hz.hiRes` consumption sites
+
+| Line | Role |
+|---|---|
+| 2014–2017 | `PVI.set()` `#`-split: seeds per-trigger HD flag and picks the displayed group |
+| 2214 | `assign_src()` auto-upgrade: thumbnail not enlargeable + HD group stashed → auto `hiResToggle()` |
+| 2807 | Shift+hotkey flips the global in-memory snapshot (undocumented in UI) |
+| 2812–2816 | `switchToHiResInFZ()`: fullzoom auto-toggle gate (`hiResOnFZ` doubles as aspect-ratio limit) |
+| 3492, 3558 | Preload selects the URL group matching the current `hiRes` |
+| 1082, 2160, 2276 (indirect) | Caption "HD available" color; crosshair cursor when low group shown |
+
+Sieve rules may also read `cfg.hz.hiRes` directly (e.g. the Instagram rule
+in `sieve.json`) — they see the static snapshot, not any per-image override.
+
+### 11.2 The `#`-split in `PVI.set()` (2000–2021)
+
+For an array source, entries are split at load: `#`-prefixed → HD group,
+plain → normal group (prefix stripped; `httpPrepend` applied). With both
+groups present: `IMGS_HD` (bool) and `IMGS_HD_stack` (the non-displayed
+group) are stored as **expando properties on the trigger DOM element**
+(`PVI.TRG`); the displayed group goes to `IMGS_c_resolved`. Edge case: only
+HD entries → no toggle state is created at all. Re-entering `set()` via the
+toggle finds no `#` entries left, so the state is preserved across one swap.
+
+### 11.3 `PVI.hiResToggle()` (2797–2809) and the `IMGS_HD_stack` swap
+
+Swaps `IMGS_HD` and `IMGS_HD_stack` and reloads the other group. The stack
+also participates in error-fallback (`content_onerror` 2111–2115, which
+**deletes** both on the error path) and the auto-upgrade (11.1). The
+Shift+hotkey variant additionally flips `cfg.hz.hiRes` **in the tab's
+in-memory snapshot only** — no `savePrefs`, so it dies with the page; it is
+a crude per-tab "default flip" with no UI documentation.
+
+### 11.4 Why the toggle is "forgotten" in galleries
+
+All toggle state lives on `PVI.TRG`. `PVI.album()` — the single navigation
+primitive every gallery path funnels into (arrow keys 2637, wheel 3047/3055,
+grid click 2787, gallery open 2734, resolver results 3763) — calls
+`PVI.resetNode(PVI.TRG, true)` at 1957; the delete list (1149–1166) includes
+`IMGS_HD`/`IMGS_HD_stack`. Each navigation re-derives state from the static
+`cfg.hz.hiRes` via `set()`. This is also the root cause of the fullzoom
+ratio-check "not sticking" (previously a TODO item).
+
+### 11.5 State containers and lifetimes
+
+- **TRG expandos** (`IMGS_HD`, `IMGS_HD_stack`, `IMGS_c`, …): per trigger
+  element; wiped by `resetNode` (hover move, album nav, mutation sweeps).
+- **`PVI` closure object** (550–571): one per frame, survives popup
+  open/close; dies with the page/frame.
+- **`PVI.stack`** (album arrays keyed by album ID; `album[0]` = position
+  pointer): the only page-level container that persists across popups;
+  entries are `[src, caption, preview]` triples — the raw (still
+  `#`-prefixed) URLs survive, so each album entry re-splits on navigation,
+  but **no HD flag is stored**. Wiped on `reinit` (3811).
+- **`cfg` snapshot** (delivered by the `hello` handshake, content.js:3866;
+  §2.1): per-tab, in-memory; content-side mutations are lost on page load
+  unless explicitly sent via `Port.send({cmd:"savePrefs"})`.
+
+### 11.6 Key plumbing
+
+`shortcut.key(e)` (app.js:117–191) → `PVI.key_action` (2465–2718); the
+hi-res branch at 2568 fires only when a popup is loading/visible (2526).
+Unset/empty `keys.*` bindings simply never match. `hiResToggle` default
+`"Tab"` (`defaults.json`); the Shortcuts page binds `keys_hiResToggle`
+(options.html:603) with generic capture/duplicate detection (options.js
+610–634).
+
+### 11.7 Sticky Resolution feature targets (branch `Sticky_Res`)
+
+The feature adds per-image / per-gallery / per-page override layers
+(specificity: image > gallery > page > global `hz.hiRes`) with page-memory
+lifetime, redesigning 11.2–11.4 accordingly; `set()`/preload consume an
+effective-preference resolver, album navigation stops destroying per-image
+state, and the Shift variant becomes a Per Page alias. Sieve-visible note:
+sieves reading `cfg.hz.hiRes` will still see the global snapshot, not the
+sticky overrides — do not expect sieve output to react to per-image/page
+toggles.
