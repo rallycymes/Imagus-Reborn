@@ -25,6 +25,14 @@ engine mechanics it modifies are analyzed in `Details.md` §11.
 - **Shift+hotkey** (currently a hidden, undocumented global in-memory flip
   of `hz.hiRes`, content.js:2806-2808): kept, remapped as a Per Page toggle
   alias regardless of the selected mode. Inert when remembering is disabled.
+  Surfaced in the settings: the Shortcuts page's main "toggle preferred
+  resolution" entry shows a second dynamic parenthetical
+  `(per page: shift + <key>)` — with a read-only mirror input of the primary
+  binding and literal `shift + ` text outside it, mirroring the page's other
+  modifier-prefixed entries — whenever a "per" scope is selected. It is
+  hidden in Individual Hotkeys mode (dynamic text stays "(currently:
+  disabled)") and when remembering is off (alias inert there), documenting
+  the previously invisible alias without changing its behavior or defaults.
 - **Override specificity**: per-image > per-gallery > per-page > global
   `hz.hiRes` (explained in the parent setting's tooltip; more specific
   toggles override more general ones).

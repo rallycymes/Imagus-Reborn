@@ -480,7 +480,7 @@ function onValueChange (e) {
         delete input_changes[id];
     }
     $("save_button").classList.toggle("alert", !!Object.keys(input_changes).length);
-    if (t.name === "hz_hiResRemember") updateHiResUi();
+    if (t.name === "hz_hiResRemember" || t.name === "keys_hiResToggle") updateHiResUi();
 }
 
 function applyCustomCssOptions() {
@@ -513,6 +513,10 @@ function updateHiResUi() {
         mainLi.classList.toggle("hires_off", hotkeysMode);
         const stateKey = !remembered ? "SC_HIRES_STATE_OFF" : hotkeysMode ? "SC_HIRES_STATE_DISABLED" : "SC_HIRES_STATE_" + scopeVal.toUpperCase();
         mainLi.querySelector(".hires_state").textContent = " (currently: " + (chrome.i18n.getMessage(stateKey) || stateKey) + ")";
+        const aliasShown = remembered && !hotkeysMode;
+        mainLi.querySelector(".hires_alias").hidden = !aliasShown;
+        mainLi.querySelector(".hires_alias_scope").textContent = chrome.i18n.getMessage("SC_HIRES_STATE_PAGE") || "per page";
+        mainLi.querySelector(".hires_alias input").value = main.value;
     }
     for (const key of ["hiResToggleImage", "hiResToggleGallery", "hiResTogglePage"]) {
         const fld = document.querySelector('input[name="keys_' + key + '"]');
