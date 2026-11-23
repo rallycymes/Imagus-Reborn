@@ -98,6 +98,28 @@ engine mechanics it modifies are analyzed in `Details.md` §11.
 - [x] Post-feature doc sync: `Details.md` §2.1 cfg flags table and §11.7
       implementation notes, `Design.md` persistence notes.
 
+## Local custom build workflow (untracked files — never commit)
+
+Local installs must be built with `build_local.js` (untracked, local-only —
+never commit it or `.build_local_state.json`). Rationale: a custom build
+installed under upstream's gecko ID was silently overwritten by AMO's update
+check with the official signed extension (the "unverified add-on" warning
+banner disappeared with it). `build_local.js` applies a personal identity
+post-build so update checks 404 and local installs persist.
+
+- `node build_local.js` = standard build, then patches `build/firefox/manifest.json`:
+  name → "Imagus Reborn - Custom", gecko ID → personal UUID
+  `{07296774-75b1-41dd-9f41-7183178cb436}`, and a strictly increasing version
+  (state in `.build_local_state.json`; suffix resets when upstream bumps the
+  base version). Output: `build/ImagusReborn_Firefox-Custom_v<version>.zip`.
+- Requires Firefox Developer Edition/Nightly/ESR with
+  `xpinstall.signatures.required = false` (release Firefox ignores the pref).
+- Install/update: `about:addons` → Install Add-on From File → the custom zip.
+  Same ID + higher version → in-place overwrite, settings preserved.
+- First install only: remove/disable the official Imagus Reborn — the
+  personal ID makes Firefox treat them as separate extensions, and both
+  inject content scripts into all pages simultaneously.
+
 ## Decisions needed from the user
 
 - Report the dead `resolve_cache` path upstream? (Confirmed vestigial 2026-11-10:
