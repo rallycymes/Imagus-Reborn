@@ -2802,30 +2802,33 @@
             PVI.album("" + idx);
         },
 
-        hdEffective: function () {
-            if (!cfg.hz.hiResRemember) return cfg.hz.hiRes;
-            if (PVI.TRG) {
-                if (PVI.TRG.IMGS_hdKey !== undefined && PVI.hiResImages[PVI.TRG.IMGS_hdKey] !== undefined) return PVI.hiResImages[PVI.TRG.IMGS_hdKey];
-                if (PVI.TRG.IMGS_album) {
-                    var album = PVI.stack[PVI.TRG.IMGS_album];
-                    if (album && album.IMGS_HD !== undefined) return album.IMGS_HD;
-                }
-            }
-            if (PVI.hiResPageVal !== undefined) return PVI.hiResPageVal;
-            return cfg.hz.hiRes;
-        },
-
-        hdPreloadEff: function (url) {
-            if (!cfg.hz.hiResRemember) return cfg.hz.hiRes;
+        hdKeyFor: function (url) {
             var key = url[0] === "#" ? url.slice(1) : url;
             if (key && key[1] === "/") key = PVI.pageProtocol + key;
-            if (PVI.hiResImages[key] !== undefined) return PVI.hiResImages[key];
+            return key;
+        },
+
+        hdRemembered: function () {
             if (PVI.TRG?.IMGS_album) {
                 var album = PVI.stack[PVI.TRG.IMGS_album];
                 if (album && album.IMGS_HD !== undefined) return album.IMGS_HD;
             }
             if (PVI.hiResPageVal !== undefined) return PVI.hiResPageVal;
             return cfg.hz.hiRes;
+        },
+
+        hdEffective: function () {
+            if (!cfg.hz.hiResRemember) return cfg.hz.hiRes;
+            var key = PVI.TRG?.IMGS_hdKey;
+            if (key !== undefined && PVI.hiResImages[key] !== undefined) return PVI.hiResImages[key];
+            return PVI.hdRemembered();
+        },
+
+        hdPreloadEff: function (url) {
+            if (!cfg.hz.hiResRemember) return cfg.hz.hiRes;
+            var key = PVI.hdKeyFor(url);
+            if (key && PVI.hiResImages[key] !== undefined) return PVI.hiResImages[key];
+            return PVI.hdRemembered();
         },
 
         hiResSwap: function () {
