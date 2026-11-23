@@ -132,7 +132,7 @@
     "message": "Whether the preferred resolution toggled via shortcuts is remembered and propagated.\nThese preferences are kept in memory only and do not last between page loads.\nMore specific preferences override more general ones: per image overrides per gallery, and per gallery overrides per page."
   },
   "HZ_HIRESSCOPE": {
-    "message": "Scope"
+    "message": "Toggle Scope"
   },
   "HZ_HIRESSCOPE_IMAGE": {
     "message": "Per Image"
