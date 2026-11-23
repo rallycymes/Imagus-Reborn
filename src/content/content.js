@@ -2839,15 +2839,24 @@
             }
         },
 
+        hiResImagesMax: 500,
+
+        hiResWriteMap: function (key, val) {
+            PVI.hiResImages[key] = val;
+            var keys = Object.keys(PVI.hiResImages);
+            if (keys.length <= PVI.hiResImagesMax) return;
+            for (var i = 0; i < keys.length - PVI.hiResImagesMax; ++i) delete PVI.hiResImages[keys[i]];
+        },
+
         hiResWrite: function (scope) {
             if (!scope) return;
             var val = !PVI.hdEffective();
             if (scope === "image") {
-                if (PVI.TRG?.IMGS_hdKey !== undefined) PVI.hiResImages[PVI.TRG.IMGS_hdKey] = val;
+                if (PVI.TRG?.IMGS_hdKey !== undefined) PVI.hiResWriteMap(PVI.TRG.IMGS_hdKey, val);
             } else if (scope === "gallery") {
                 var album = PVI.TRG?.IMGS_album && PVI.stack[PVI.TRG.IMGS_album];
                 if (album) album.IMGS_HD = val;
-                else if (PVI.TRG?.IMGS_hdKey !== undefined) PVI.hiResImages[PVI.TRG.IMGS_hdKey] = val;
+                else if (PVI.TRG?.IMGS_hdKey !== undefined) PVI.hiResWriteMap(PVI.TRG.IMGS_hdKey, val);
             } else if (scope === "page") {
                 PVI.hiResPageVal = val;
                 PVI.hiResRelay(val);
