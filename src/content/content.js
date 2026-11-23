@@ -2853,18 +2853,34 @@
 
         hiResWrite: function (scope) {
             if (!scope) return;
-            var val = !PVI.hdEffective();
+            var hdKey = PVI.TRG?.IMGS_hdKey;
+            var album = PVI.TRG?.IMGS_album && PVI.stack[PVI.TRG.IMGS_album];
+            var eff = PVI.hdEffective();
+            var val = !eff;
+            var wroteImage = false;
             if (scope === "image") {
-                if (PVI.TRG?.IMGS_hdKey !== undefined) PVI.hiResWriteMap(PVI.TRG.IMGS_hdKey, val);
+                if (hdKey !== undefined) {
+                    PVI.hiResWriteMap(hdKey, val);
+                    wroteImage = true;
+                }
             } else if (scope === "gallery") {
-                var album = PVI.TRG?.IMGS_album && PVI.stack[PVI.TRG.IMGS_album];
                 if (album) album.IMGS_HD = val;
-                else if (PVI.TRG?.IMGS_hdKey !== undefined) PVI.hiResWriteMap(PVI.TRG.IMGS_hdKey, val);
+                else if (hdKey !== undefined) {
+                    PVI.hiResWriteMap(hdKey, val);
+                    wroteImage = true;
+                }
             } else if (scope === "page") {
                 PVI.hiResPageVal = val;
                 PVI.hiResRelay(val);
             }
-            if (PVI.TRG?.IMGS_HD !== undefined && PVI.TRG.IMGS_HD !== PVI.hdEffective()) PVI.hiResSwap();
+            var newEff;
+            if (wroteImage) newEff = val;
+            else if (hdKey !== undefined && PVI.hiResImages[hdKey] !== undefined) newEff = PVI.hiResImages[hdKey];
+            else if (album && album.IMGS_HD !== undefined) newEff = album.IMGS_HD;
+            else if (scope === "page") newEff = val;
+            else if (PVI.hiResPageVal !== undefined) newEff = PVI.hiResPageVal;
+            else newEff = cfg.hz.hiRes;
+            if (PVI.TRG?.IMGS_HD !== undefined && PVI.TRG.IMGS_HD !== newEff) PVI.hiResSwap();
         },
 
         hiResRelay: function (val) {
